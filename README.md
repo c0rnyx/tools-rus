@@ -15,7 +15,7 @@ service pivoting, exploitation, and post-exploitation validation.
 
 <p>
 All testing was performed in a safe, legal, and authorized lab environment
-for educational and portfolio purposes.
+for educational purposes.
 </p>
 
 <hr>
@@ -24,7 +24,6 @@ for educational and portfolio purposes.
 <ul>
   <li><strong>Target:</strong> ToolsRUs (TryHackMe Lab)</li>
   <li><strong>Target IP:</strong> 10.48.184.134</li>
-  <li><strong>Tester:</strong> [Your Name / Handle]</li>
   <li><strong>Date:</strong> January 2026</li>
   <li><strong>Environment:</strong> Authorized CTF / Lab Environment (TryHackMe)</li>
 </ul>
@@ -96,7 +95,6 @@ service on a non-standard port suggested service obfuscation rather than
 proper access control.
 <pre><code>nmap -sV -sC -p 22,80,1234,8009 10.48.184.134 </code></pre>
 <img src="https://i.imgur.com/erRPpMX.png" height="90%" width="90%" alt="Nmap Scan Results"/>
-
 </p>
 
 <hr>
@@ -127,11 +125,15 @@ This disclosure provided the following intelligence:
 
 <h3>3. Weak Authentication on Protected Resource</h3>
 <p>
-The <code>/protected</code> endpoint that was previously identified relied on <strong>HTTP Basic Authentication</strong>
-over unencrypted HTTP.
+The previously identified <code>/protected</code> endpoint relied on <strong>HTTP Basic Authentication</strong>
+over unencrypted HTTP. This was confirmed using the curl command-line tool. 
 </p>
 
 <img src="https://i.imgur.com/0aNj96j.png" height="90%" width="90%" alt=Browser display>
+<p>
+<pre><code>curl -I http://10.48.184.134:80/protected </code></pre>
+</p>
+<img src="https://i.imgur.com/q6ccHXh.png" height="65%" width="65%" alt=curl basic auth confirmation>
 
 <p>
 No rate limiting, monitoring, or account lockout mechanisms were observed.
@@ -144,6 +146,7 @@ This authentication method substantially lowered the barrier for credential-base
 <h3>4. Credential Brute Force Attack</h3>
 <p>
 Using the previously disclosed username, a credential attack was conducted against the <code>/protected</code> endpoint.
+<pre><code>hydra -l bob -P /usr/share/wordlists/rockyou.txt 10.48.184.134 -s 80 http-get /protected</code></pre>
 </p>
 
 <img src="https://i.imgur.com/PKsC5VD.png" height="90%" width="90%" alt=Hydra creds bruteforce>
@@ -167,22 +170,28 @@ resource had moved to a different port. This behavior suggested service
 segmentation rather than remediation.
 </p>
 
+<img src="https://i.imgur.com/ozPCRVS.png" height="90%" width="90%" alt=Tomcat protected move>
+
 <p>
-Further enumeration identified an exposed Apache Tomcat Manager interface on
+Further enumeration identified an exposed Apache Tomcat Manager interface running on
 port <code>1234</code>. The service was fingerprinted as <strong>Apache Tomcat 7</strong>,
 an end-of-life and unsupported version.
 </p>
 
 <p>
+
 Enumeration revealed:
-</p>
+
 <ul>
   <li>Exposed management interfaces</li>
   <li>Dangerous HTTP methods (PUT, DELETE)</li>
   <li>Default example applications enabled</li>
 </ul>
+<pre><code>nikto -h 10.48.184.134:1234</code></pre>
+</p>
 
-<p><em>Screenshot: Tomcat enumeration results</em></p>
+<img src="https://i.imgur.com/Rb1XMJE.png" height="90%" width="90%" alt=Tomcat manager enumeration >
+
 
 <hr>
 
@@ -199,7 +208,10 @@ Tomcat Manager interface was exposed at:
 Given that valid credentials were already obtained, the Tomcat version was
 outdated, and the Manager interface was externally accessible, exploitation
 paths focusing on authenticated functionality were prioritized.
+<code>search tomcat manager</code>
 </p>
+
+<img src="https://i.imgur.com/YCzA099.png" height="90%" width="90%" alt=Metasploit exploit selection>
 
 <p>
 The Metasploit module <code>exploit/multi/http/tomcat_mgr_upload</code> was selected
@@ -212,33 +224,32 @@ because it:
   <li>Provides stable and repeatable remote code execution</li>
 </ul>
 
-<p>
-This mirrors real-world attacker behavior, where exposed administrative
-interfaces combined with weak authentication are preferred over complex
-memory corruption exploits.
-</p>
-
-<p><em>Screenshot: Metasploit exploit selection and configuration</em></p>
+<img src="https://i.imgur.com/GE9K8Lj.png" height="90%" wight="90%" alt=Metsploit exploit setup>
 
 <hr>
 
 <h3>7. Remote Code Execution (Critical)</h3>
 <p>
-Authenticated access to the Tomcat Manager interface allowed the upload and
-execution of a malicious WAR file, resulting in a reverse shell from the
-target system.
+Authenticated access to the Apache Tomcat Manager interface permitted
+the deployment and execution of a malicious WAR file,
+resulting in a reverse Meterpreter session from the target system.
 </p>
 
 <p><strong>Result:</strong> Remote Code Execution achieved.</p>
 
-<p><em>Screenshot: Active Meterpreter session</em></p>
+<img src="https://i.imgur.com/wPGXPli.png" height="90%" width="90%" alt=Meterpreter shell achieved>
 
 <hr>
 
 <h2>Post-Exploitation Validation</h2>
 <p>
 Basic system enumeration confirmed the level of access obtained:
+<pre><code>sysinfo</code></pre>
+<pre><code>getuid</code></pre>
 </p>
+
+<img src="https://i.imgur.com/5Fz9lOs.png" height="65%" width="65%" alt=Meterpreter system enumeration>
+
 <ul>
   <li><strong>Operating System:</strong> Linux 4.4.0-1075-aws</li>
   <li><strong>Architecture:</strong> x64</li>
@@ -248,17 +259,16 @@ Basic system enumeration confirmed the level of access obtained:
 <p>
 Inspection of the following configuration file revealed plaintext credentials:
 </p>
-
+<pre><code>search -f tomcat-users.xml</code></pre>
 <pre><code>/usr/local/tomcat7/conf/tomcat-users.xml</code></pre>
-
+<img src="https://i.imgur.com/AZhwHd1.png" height="90%" width="90%" alt= Tomcat-users file discovery>
+<img src="https://i.imgur.com/IbD64fX.png" height="90%" width="90%" alt= Tomcat-users file output>
 <pre><code>&lt;user name="bob" password="bubbles" roles="admin-gui,manager-gui" /&gt;</code></pre>
 
 <p>
 This confirmed that the compromised account was a high-privilege Tomcat
 administrator and that credentials were stored insecurely.
 </p>
-
-<p><em>Screenshot: tomcat-users.xml contents</em></p>
 
 <hr>
 
@@ -289,5 +299,5 @@ administrator and that credentials were stored insecurely.
 <p>
 This penetration test was conducted exclusively within an
 <strong>authorized TryHackMe laboratory environment</strong>.
-All activities were performed for educational and portfolio purposes only.
+All activities were performed for educational purposes only.
 </p>
