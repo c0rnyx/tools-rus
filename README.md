@@ -110,7 +110,7 @@ an internal message exposed to unauthenticated users. The message referenced
 an internal user named <strong>bob</strong> and implied that an Apache Tomcat
 backend had not been updated.
 
-<img src="https://i.imgur.com/8PfPxgY.png" height="90%" width="90%" alt=Web app username disclose>
+<img src="https://i.imgur.com/8PfPxgY.png" height="90%" width="90%" alt="Web app username disclose">
 </p>
 
 <p>
@@ -129,11 +129,11 @@ The previously identified <code>/protected</code> endpoint relied on <strong>HTT
 over unencrypted HTTP. This was confirmed using the curl command-line tool. 
 </p>
 
-<img src="https://i.imgur.com/0aNj96j.png" height="90%" width="90%" alt=Browser display>
+<img src="https://i.imgur.com/0aNj96j.png" height="90%" width="90%" alt="Browser display">
 <p>
 <pre><code>curl -I http://10.48.184.134:80/protected </code></pre>
 </p>
-<img src="https://i.imgur.com/q6ccHXh.png" height="65%" width="65%" alt=curl basic auth confirmation>
+<img src="https://i.imgur.com/q6ccHXh.png" height="65%" width="65%" alt="curl basic auth confirmation">
 
 <p>
 No rate limiting, monitoring, or account lockout mechanisms were observed.
@@ -149,7 +149,7 @@ Using the previously disclosed username, a credential attack was conducted again
 <pre><code>hydra -l bob -P /usr/share/wordlists/rockyou.txt 10.48.184.134 -s 80 http-get /protected</code></pre>
 </p>
 
-<img src="https://i.imgur.com/PKsC5VD.png" height="90%" width="90%" alt=Hydra creds bruteforce>
+<img src="https://i.imgur.com/PKsC5VD.png" height="90%" width="90%" alt="Hydra creds bruteforce">
 
 <p><strong>Valid credentials obtained:</strong></p>
 <ul>
@@ -170,7 +170,7 @@ resource had moved to a different port. This behavior suggested service
 segmentation rather than remediation.
 </p>
 
-<img src="https://i.imgur.com/ozPCRVS.png" height="90%" width="90%" alt=Tomcat protected move>
+<img src="https://i.imgur.com/ozPCRVS.png" height="90%" width="90%" alt="Tomcat protected move">
 
 <p>
 Further enumeration identified an exposed Apache Tomcat Manager interface running on
@@ -190,7 +190,7 @@ Enumeration revealed:
 <pre><code>nikto -h 10.48.184.134:1234</code></pre>
 </p>
 
-<img src="https://i.imgur.com/Rb1XMJE.png" height="90%" width="90%" alt=Tomcat manager enumeration >
+<img src="https://i.imgur.com/Rb1XMJE.png" height="90%" width="90%" alt="Tomcat manager enumeration">
 
 
 <hr>
@@ -211,7 +211,7 @@ paths focusing on authenticated functionality were prioritized.
 <code>search tomcat manager</code>
 </p>
 
-<img src="https://i.imgur.com/YCzA099.png" height="90%" width="90%" alt=Metasploit exploit selection>
+<img src="https://i.imgur.com/YCzA099.png" height="90%" width="90%" alt="Metasploit exploit selection">
 
 <p>
 The Metasploit module <code>exploit/multi/http/tomcat_mgr_upload</code> was selected
@@ -224,7 +224,7 @@ because it:
   <li>Provides stable and repeatable remote code execution</li>
 </ul>
 
-<img src="https://i.imgur.com/GE9K8Lj.png" height="90%" wight="90%" alt=Metsploit exploit setup>
+<img src="https://i.imgur.com/GE9K8Lj.png" height="90%" wight="90%" alt="Metsploit exploit setup">
 
 <hr>
 
@@ -237,7 +237,7 @@ resulting in a reverse Meterpreter session from the target system.
 
 <p><strong>Result:</strong> Remote Code Execution achieved.</p>
 
-<img src="https://i.imgur.com/wPGXPli.png" height="90%" width="90%" alt=Meterpreter shell achieved>
+<img src="https://i.imgur.com/wPGXPli.png" height="90%" width="90%" alt="Meterpreter shell achieved">
 
 <hr>
 
@@ -248,7 +248,7 @@ Basic system enumeration confirmed the level of access obtained:
 <pre><code>getuid</code></pre>
 </p>
 
-<img src="https://i.imgur.com/5Fz9lOs.png" height="65%" width="65%" alt=Meterpreter system enumeration>
+<img src="https://i.imgur.com/5Fz9lOs.png" height="65%" width="65%" alt="Meterpreter system enumeration">
 
 <ul>
   <li><strong>Operating System:</strong> Linux 4.4.0-1075-aws</li>
@@ -261,8 +261,8 @@ Inspection of the following configuration file revealed plaintext credentials:
 </p>
 <pre><code>search -f tomcat-users.xml</code></pre>
 <pre><code>/usr/local/tomcat7/conf/tomcat-users.xml</code></pre>
-<img src="https://i.imgur.com/AZhwHd1.png" height="90%" width="90%" alt= Tomcat-users file discovery>
-<img src="https://i.imgur.com/IbD64fX.png" height="90%" width="90%" alt= Tomcat-users file output>
+<img src="https://i.imgur.com/AZhwHd1.png" height="90%" width="90%" alt="Tomcat-users file discovery">
+<img src="https://i.imgur.com/IbD64fX.png" height="90%" width="90%" alt="Tomcat-users file output">
 <pre><code>&lt;user name="bob" password="bubbles" roles="admin-gui,manager-gui" /&gt;</code></pre>
 
 <p>
